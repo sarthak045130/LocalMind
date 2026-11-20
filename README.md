@@ -1,6 +1,6 @@
 # LocalMind
 
-**A local AI chat app for supported browsers and desktop computers.** Your chats, attached files, and model inference stay on your device. After the first setup, chat works without an internet connection.
+**A local AI chat app for supported browsers and desktop computers.** [Launch the live app](https://sarthak045130.github.io/LocalMind/). Your chats, attached files, and model inference stay on your device. After the first setup, chat works without an internet connection.
 
 LocalMind is an early release. Support depends on the browser, operating system, GPU, and available memory. It cannot run on every device, and the mobile browser install is a web app rather than a native phone app.
 
@@ -27,9 +27,9 @@ The app checks for WebGPU before loading a model. A device or browser without We
 
 ## Getting started
 
-1. Open the hosted app in a supported browser. For GitHub Pages, enable **Settings → Pages → GitHub Actions** after publishing this repository.
+1. Open the hosted app in a supported browser. The live app is deployed automatically from the main branch.
 2. While online, open the app once so the service worker can cache the app shell.
-3. Choose a model and press **⬇ Model**. Wait until the status says **Model ready. Works offline now.** The initial model download is roughly 0.4–2 GB, depending on the model.
+3. Choose a model and press **⬇ Model**. Wait until the status says **Model ready. Chat can now run offline on this device.** The initial model download is roughly 0.4–2 GB, depending on the model.
 4. If you plan to use PDF reading or image OCR offline, use each feature once while online so its helper library can be downloaded and cached. Embeddings are optional; memory search falls back to keyword matching if they cannot load.
 5. Turn off your connection and try a new chat. Keep the app's site data; clearing it removes local chats and may remove downloaded files. Export backups regularly.
 
