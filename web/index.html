@@ -280,7 +280,7 @@ async function loadModel(){
   setStatus('Loading model…');
   engine = await webllm.CreateMLCEngine(id,{initProgressCallback:p=>setStatus(p.text)});
   loadedId = id;
-  setStatus('Model ready. Works offline now.');
+  setStatus('Model ready. Chat can now run offline on this device.');
 }
 
 /* ---------- UI state ---------- */
@@ -320,7 +320,7 @@ async function listChats(){
   }
 }
 function showEmpty(){
-  msgsEl.innerHTML='<div id="empty"><h2>LocalMind</h2>Private AI that runs on your device.<br>Tap <b>⬇ Model</b> once while online, then it works offline. Attach photos or PDFs and it will remember them in this chat.<br><br><small>Install as an app: Chrome/Edge → Install button · Android → ⋮ → Install app · iPhone → Share → Add to Home Screen.</small></div>';
+  msgsEl.innerHTML='<div id="empty"><h2>LocalMind</h2>Private AI that runs on your device.<br>Download a model while online; chat can then work offline on supported devices. PDF and image reading may need helper downloads before offline use.<br><br><small>Requires WebGPU. Install as a web app: Chrome/Edge → Install · Android → ⋮ → Install app · iPhone → Safari Share → Add to Home Screen.</small></div>';
 }
 function newChat(){ chatId=null; pending=[]; renderPending(); $('#title').textContent='LocalMind'; showEmpty(); $('#side').classList.remove('open'); listChats(); }
 async function openChat(id){
