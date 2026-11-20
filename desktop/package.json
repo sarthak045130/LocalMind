@@ -1,0 +1,41 @@
+{
+  "name": "localmind",
+  "version": "1.0.0",
+  "description": "Private AI that runs on your device and remembers your chats and files, offline.",
+  "author": "LocalMind <noreply@example.com>",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "app.localmind.desktop",
+    "productName": "LocalMind",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "package.json"],
+    "extraResources": [{ "from": "../web", "to": "web" }],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "artifactName": "LocalMind-${version}-mac-${arch}.${ext}"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "LocalMind-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "artifactName": "LocalMind-${version}-linux-${arch}.${ext}"
+    }
+  }
+}
