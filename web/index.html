@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LocalMind</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1f2937">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#6b7280;--side:#f3f4f6;--line:#e5e7eb;--acc:#2563eb;--abub:#f3f4f6}
+@media(prefers-color-scheme:dark){:root{--bg:#111318;--fg:#e8e8e8;--mut:#9aa0a6;--side:#181b22;--line:#2a2e37;--acc:#5b8def;--abub:#1d212a}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg);display:flex;overflow:hidden}
+button,select,textarea{font:inherit;color:inherit}
+button{background:var(--side);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+#side{width:270px;background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:10px;gap:8px;flex:none}
+#chats{flex:1;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.ci{display:flex;align-items:center;gap:4px;padding:7px 8px;border-radius:8px;cursor:pointer}
+.ci:hover,.ci.on{background:var(--line)}
+.ci span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci b{font-weight:400;color:var(--mut);padding:0 4px}
+#main{flex:1;display:flex;flex-direction:column;min-width:0;height:100%}
+header{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+header h1{font-size:16px;margin:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header select{max-width:46vw;background:var(--side);border:1px solid var(--line);border-radius:8px;padding:6px}
+#menu{display:none}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.m{max-width:760px;width:fit-content;max-width:min(760px,92%);padding:9px 12px;border-radius:14px;word-wrap:break-word;overflow-wrap:anywhere}
+.m.u{align-self:flex-end;background:var(--acc);color:#fff}
+.m.a{align-self:flex-start;background:var(--abub)}
+.m pre{background:rgba(127,127,127,.18);padding:8px;border-radius:8px;overflow:auto;margin:6px 0}
+.m code{background:rgba(127,127,127,.18);padding:1px 4px;border-radius:4px}
+.m img{max-width:200px;max-height:160px;border-radius:8px;display:block;margin-top:6px}
+.chip{display:inline-block;background:rgba(127,127,127,.25);border-radius:999px;padding:1px 9px;margin:4px 4px 0 0;font-size:12px}
+#empty{margin:auto;text-align:center;color:var(--mut);max-width:420px;padding:20px}
+#status{padding:3px 12px;color:var(--mut);font-size:12px;min-height:22px}
+#bar{display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);align-items:flex-end}
+#in{flex:1;resize:none;max-height:140px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:9px 11px;outline:none}
+#opts{display:flex;gap:12px;padding:4px 12px;font-size:13px;color:var(--mut);align-items:center;flex-wrap:wrap}
+#opts select{background:var(--side);border:1px solid var(--line);border-radius:6px;padding:2px 4px}
+#pend{padding:0 12px}
+dialog{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:14px;width:min(640px,94vw);max-height:86vh;padding:14px;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#hq{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.hit{padding:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;font-size:13px;overflow-wrap:anywhere}
+.hit button{margin-left:8px;padding:2px 8px}
+#hres,#hfiles{max-height:26vh;overflow:auto}
+.mut{color:var(--mut);font-size:12px}
+@media(max-width:760px){
+ #side{position:fixed;top:0;bottom:0;left:0;width:78%;transform:translateX(-100%);transition:transform .2s;z-index:5}
+ #side.open{transform:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.4)}
+ #menu{display:inline-block}
+}
+</style>
+</head>
+<body>
+<aside id="side">
+  <button class="pri" id="new">+ New chat</button>
+  <button id="histBtn">🕘 History &amp; backup</button>
+  <div id="chats"></div>
+  <div style="font-size:12px;color:var(--mut)" id="store"></div>
+</aside>
+<div id="main">
+  <header>
+    <button id="menu">☰</button>
+    <h1 id="title">LocalMind</h1>
+    <button id="install" hidden>📲 Install</button>
+    <button id="getmodel" title="Download / load the model now">⬇ Model</button>
+    <select id="model"></select>
+  </header>
+  <div id="msgs"></div>
+  <div id="status"></div>
+  <div id="pend"></div>
+  <div id="opts">
+    <label><input type="checkbox" id="web"> Web search when online</label>
+    <label>Mode
+      <select id="mode">
+        <option value="chat">Chat / Q&amp;A</option>
+        <option value="check">Answer checker</option>
+      </select>
+    </label>
+  </div>
+  <div id="bar">
+    <button id="att" title="Attach photos, PDFs or text files">📎</button>
+    <input type="file" id="file" multiple accept="image/*,application/pdf,.txt,.md,.csv" hidden>
+    <textarea id="in" rows="1" placeholder="Ask anything…"></textarea>
+    <button class="pri" id="go">Send</button>
+  </div>
+</div>
+
+<dialog id="hist">
+  <div class="hh"><b>History &amp; backup</b><button id="hclose">Close</button></div>
+  <input id="hq" placeholder="Search all past chats…">
+  <div id="hres"></div>
+  <div class="hh" style="margin-top:12px"><b>Remembered files</b></div>
+  <div id="hfiles"></div>
+  <div class="hh" style="margin-top:12px"><b>Backup</b></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button id="exp">⬇ Export backup</button>
+    <button id="imp">⬆ Import backup</button>
+    <input type="file" id="impfile" accept="application/json,.json" hidden>
+  </div>
+  <p class="mut">Everything is stored only on this device. The AI automatically recalls relevant parts of your past chats and files when you ask. Export a backup to keep it safe or move it to another device.</p>
+</dialog>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const MODELS = [
+  {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', label:'Small · ~0.4 GB (older phones)'},
+  {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label:'Balanced · ~1 GB (recommended)'},
+  {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',   label:'Smarter · ~2 GB (desktop / 8GB+ phones)'}
+];
+
+/* ---------- storage (IndexedDB) ---------- */
+let db;
+const req = r => new Promise((ok,no)=>{ r.onsuccess=()=>ok(r.result); r.onerror=()=>no(r.error); });
+const done = t => new Promise((ok,no)=>{ t.oncomplete=ok; t.onerror=()=>no(t.error); t.onabort=()=>no(t.error); });
+const st = (n,m='readonly') => db.transaction(n,m).objectStore(n);
+function openDB(){
+  return new Promise((ok,no)=>{
+    const r = indexedDB.open('localmind',1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('chats',{keyPath:'id'});
+      d.createObjectStore('messages',{keyPath:'id',autoIncrement:true}).createIndex('chat','chatId');
+      d.createObjectStore('chunks',{keyPath:'id',autoIncrement:true}).createIndex('chat','chatId');
+      d.createObjectStore('files',{keyPath:'id',autoIncrement:true}).createIndex('chat','chatId');
+    };
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => no(r.error);
+  });
+}
+const put = (n,v) => req(st(n,'readwrite').put(v));
+const getAll = n => req(st(n).getAll());
+const byChat = (n,id) => req(st(n).index('chat').getAll(id));
+async function delChat(id){
+  for(const n of ['messages','chunks','files']){
+    const keys = await req(st(n).index('chat').getAllKeys(id));
+    const t = db.transaction(n,'readwrite');
+    keys.forEach(k => t.objectStore(n).delete(k));
+    await done(t);
+  }
+  const t = db.transaction('chats','readwrite'); t.objectStore('chats').delete(id); await done(t);
+}
+
+/* ---------- helpers ---------- */
+const esc = s => s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const md = s => esc(s).replace(/```([\s\S]*?)```/g,'<pre>$1</pre>').replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+const setStatus = t => { $('#status').textContent = t; };
+function loadScript(src){
+  return new Promise((ok,no)=>{
+    if(document.querySelector(`script[src="${src}"]`)) return ok();
+    const s = document.createElement('script'); s.src = src; s.onload = ok;
+    s.onerror = () => no(new Error('Could not load '+src+' (needs internet the first time)'));
+    document.head.appendChild(s);
+  });
+}
+function chunkText(text,size=700,ov=100){
+  const out=[]; text=text.replace(/\s+/g,' ').trim();
+  for(let i=0;i<text.length;i+=size-ov){ out.push(text.slice(i,i+size)); if(i+size>=text.length) break; }
+  return out;
+}
+
+/* ---------- embeddings + retrieval ---------- */
+let embedder=null, embedFailed=false;
+async function embed(text){
+  if(embedFailed) return null;
+  try{
+    if(!embedder){
+      const t = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3');
+      embedder = await t.pipeline('feature-extraction','Xenova/all-MiniLM-L6-v2',{dtype:'q8'});
+    }
+    const o = await embedder(text,{pooling:'mean',normalize:true});
+    return Float32Array.from(o.data);
+  }catch(e){ console.warn('Embeddings unavailable, using keyword search',e); embedFailed=true; return null; }
+}
+const tok = s => s.toLowerCase().match(/[a-z0-9\u0900-\u097f]+/g)||[];
+function kw(q,t){
+  const a=new Set(tok(q)), b=tok(t); if(!a.size||!b.length) return 0;
+  let h=0; for(const w of b) if(a.has(w)) h++;
+  return Math.min(1, 0.3*h/Math.sqrt(b.length));
+}
+const cos = (a,b) => { let s=0; for(let i=0;i<a.length;i++) s+=a[i]*b[i]; return s; };
+async function retrieve(query,chatId,fresh=[]){
+  const [qv, chunks] = await Promise.all([embed(query), getAll('chunks')]);
+  const scored = chunks.map(c=>{
+    const emb = !!(qv && c.vec && c.vec.length===qv.length);
+    let s = emb ? cos(qv,c.vec) : kw(query,c.text);
+    if(c.chatId===chatId) s += 0.08;
+    return {c,s,emb};
+  }).sort((a,b)=>b.s-a.s);
+  const picked = scored.filter(x=>x.s>(x.emb?0.28:0.2)).slice(0,5);
+  // files attached in this very message are always included (best 3 pieces)
+  const freshTop = scored.filter(x=>fresh.includes(x.c.source) && x.c.chatId===chatId && !picked.includes(x)).slice(0,3);
+  return [...picked,...freshTop].map(x=>x.c);
+}
+async function addChunks(chatId,text,source,kind){
+  const parts = chunkText(text);
+  for(let i=0;i<parts.length;i++){
+    setStatus(`Remembering ${source} (${i+1}/${parts.length})…`);
+    const vec = await embed(parts[i]);
+    await put('chunks',{chatId,source,kind,text:parts[i],vec,t:Date.now()});
+  }
+}
+
+/* ---------- file reading (text / OCR / PDF) ---------- */
+let ocrWorker=null;
+async function ocr(src){
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  ocrWorker ||= await Tesseract.createWorker('eng');
+  const r = await ocrWorker.recognize(src);
+  return r.data.text||'';
+}
+async function pdfText(file){
+  const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  await loadScript(base+'pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = base+'pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  let out='';
+  for(let p=1;p<=pdf.numPages;p++){
+    setStatus(`Reading ${file.name} page ${p}/${pdf.numPages}…`);
+    const pg = await pdf.getPage(p);
+    const tc = await pg.getTextContent();
+    let t = tc.items.map(i=>i.str).join(' ').trim();
+    if(t.length<30 && p<=40){
+      const vp = pg.getViewport({scale:2});
+      const c = document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+      await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+      t = (await ocr(c)).trim();
+    }
+    out += `\n[Page ${p}] ${t}`;
+  }
+  return out;
+}
+async function extract(file){
+  if(file.type.startsWith('image/')){ setStatus(`Reading text in ${file.name}…`); return await ocr(file); }
+  if(file.type==='application/pdf' || /\.pdf$/i.test(file.name)) return await pdfText(file);
+  return await file.text();
+}
+
+/* ---------- tools: web + calculator ---------- */
+async function webSearch(q){
+  if(!navigator.onLine) return '';
+  try{
+    const u='https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+
+      '&gsrlimit=3&prop=extracts&exintro=1&explaintext=1&exchars=700&format=json&origin=*';
+    const j = await (await fetch(u)).json();
+    return Object.values(j.query?.pages||{}).map(p=>`[Web: ${p.title}] ${p.extract}`).join('\n');
+  }catch{ return ''; }
+}
+function calc(text){
+  const found = text.match(/(?:\d|\()[\d\s+\-*/().^x×÷]*[\d)]/g)||[];
+  const res=[];
+  for(const e of found){
+    const s=e.trim();
+    if(/\d{4}-\d{1,2}-\d{1,2}/.test(s)) continue;
+    if(!/[+*/^x×÷]|\s-\s/.test(s.slice(1))) continue;
+    const ex = s.replace(/[×x]/g,'*').replace(/÷/g,'/').replace(/\^/g,'**');
+    if(!/^[\d\s+\-*/().]+$/.test(ex)) continue;
+    try{ const v=Function('"use strict";return ('+ex+')')(); if(Number.isFinite(v)) res.push(`${s} = ${+v.toFixed(8)}`); }catch{}
+  }
+  return res.slice(0,3);
+}
+
+/* ---------- model ---------- */
+let engine=null, loadedId=null, webllm=null, busy=false;
+async function loadModel(){
+  const id = $('#model').value;
+  if(engine && loadedId===id) return;
+  if(!navigator.gpu) throw new Error('This browser has no WebGPU. Use a recent Chrome/Edge (desktop or Android) or Safari on iOS 26+.');
+  webllm ||= await import('https://esm.run/@mlc-ai/web-llm');
+  if(engine){ await engine.unload(); engine=null; }
+  setStatus('Loading model…');
+  engine = await webllm.CreateMLCEngine(id,{initProgressCallback:p=>setStatus(p.text)});
+  loadedId = id;
+  setStatus('Model ready. Works offline now.');
+}
+
+/* ---------- UI state ---------- */
+let chatId=null, pending=[];
+const msgsEl=$('#msgs');
+
+async function renderMsg(m){
+  const d=document.createElement('div');
+  d.className='m '+(m.role==='user'?'u':'a');
+  d.innerHTML = md(m.content||'');
+  msgsEl.appendChild(d);
+  for(const fid of (m.fileIds||[])){
+    const f = await req(st('files').get(fid));
+    if(!f) continue;
+    if(f.type.startsWith('image/')){
+      const img=document.createElement('img'); img.src=URL.createObjectURL(f.blob); d.appendChild(img);
+    } else {
+      const c=document.createElement('span'); c.className='chip'; c.textContent='📎 '+f.name; d.appendChild(c);
+    }
+  }
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  return d;
+}
+async function listChats(){
+  const cs = (await getAll('chats')).sort((a,b)=>b.t-a.t);
+  const box=$('#chats'); box.innerHTML='';
+  for(const c of cs){
+    const el=document.createElement('div'); el.className='ci'+(c.id===chatId?' on':'');
+    el.innerHTML=`<span>${esc(c.title)}</span><b title="Delete">✕</b>`;
+    el.querySelector('span').onclick=()=>openChat(c.id);
+    el.querySelector('b').onclick=async e=>{
+      e.stopPropagation();
+      if(!confirm('Delete this chat and its saved files?')) return;
+      await delChat(c.id); if(chatId===c.id) newChat(); listChats();
+    };
+    box.appendChild(el);
+  }
+}
+function showEmpty(){
+  msgsEl.innerHTML='<div id="empty"><h2>LocalMind</h2>Private AI that runs on your device.<br>Tap <b>⬇ Model</b> once while online, then it works offline. Attach photos or PDFs and it will remember them in this chat.<br><br><small>Install as an app: Chrome/Edge → Install button · Android → ⋮ → Install app · iPhone → Share → Add to Home Screen.</small></div>';
+}
+function newChat(){ chatId=null; pending=[]; renderPending(); $('#title').textContent='LocalMind'; showEmpty(); $('#side').classList.remove('open'); listChats(); }
+async function openChat(id){
+  chatId=id; pending=[]; renderPending();
+  const c = await req(st('chats').get(id));
+  $('#title').textContent=c?.title||'Chat';
+  msgsEl.innerHTML='';
+  const ms=(await byChat('messages',id)).sort((a,b)=>a.id-b.id);
+  for(const m of ms) await renderMsg(m);
+  $('#side').classList.remove('open'); listChats();
+}
+function renderPending(){
+  $('#pend').innerHTML='';
+  pending.forEach((f,i)=>{
+    const c=document.createElement('span'); c.className='chip'; c.textContent='📎 '+f.name+' ✕'; c.style.cursor='pointer';
+    c.onclick=()=>{ pending.splice(i,1); renderPending(); };
+    $('#pend').appendChild(c);
+  });
+}
+async function updateStorage(){
+  try{
+    const e=await navigator.storage.estimate();
+    $('#store').textContent=`Storage used: ${(e.usage/1048576).toFixed(0)} MB`;
+  }catch{}
+}
+
+/* ---------- send ---------- */
+const SYSTEM = `You are LocalMind, a helpful assistant running fully on the user's own device. Use the CONTEXT below (the user's saved files and past chats, plus web results when present) when it is relevant and say which file or page you used. If the context does not contain the answer, say so instead of guessing. For arithmetic, trust the CALCULATOR lines. Be concise and clear.`;
+const CHECKER = `\nYou are also acting as an examiner. The student's answer is in the user's message. Use the marking scheme or reference from CONTEXT if present. List: correct points, missing or wrong points, then suggested marks (ask for total marks if not given). If there is no reference in CONTEXT, say that you are marking from general knowledge and be cautious.`;
+
+async function send(){
+  if(busy) return;
+  let text = $('#in').value.trim();
+  if(!text && !pending.length) return;
+  if(!text) text='Please read the attached files and summarize them.';
+  busy=true; $('#go').textContent='Stop';
+  try{
+    if(!chatId){
+      chatId=Date.now();
+      await put('chats',{id:chatId,title:text.slice(0,40),t:Date.now()});
+      $('#title').textContent=text.slice(0,40);
+    }
+    if(msgsEl.querySelector('#empty')) msgsEl.innerHTML='';
+    $('#in').value=''; $('#in').style.height='auto';
+
+    const fileIds=[], freshNames=[];
+    for(const f of pending){
+      freshNames.push(f.name);
+      const fid = await put('files',{chatId,name:f.name,type:f.type||'text/plain',blob:f,t:Date.now()});
+      fileIds.push(fid);
+      try{
+        const t = await extract(f);
+        if(t.trim()) await addChunks(chatId,t,f.name,'file');
+        else setStatus(`No readable text found in ${f.name}.`);
+      }catch(e){ setStatus('Could not read '+f.name+': '+e.message); }
+    }
+    pending=[]; renderPending();
+
+    const um={chatId,role:'user',content:text,fileIds,t:Date.now()};
+    um.id = await put('messages',um);
+    await renderMsg(um);
+    await put('chats',{id:chatId,title:(await req(st('chats').get(chatId))).title,t:Date.now()});
+
+    await loadModel();
+
+    setStatus('Recalling from memory…');
+    const hits = await retrieve(text,chatId,freshNames);
+    let ctx = hits.map(h=>`[${h.source}] ${h.text}`).join('\n');
+    if($('#web').checked){ setStatus('Searching the web…'); const w=await webSearch(text); if(w) ctx += '\n'+w; }
+    const cl = calc(text);
+    if(cl.length) ctx += '\nCALCULATOR: '+cl.join('; ');
+
+    const hist=(await byChat('messages',chatId)).sort((a,b)=>a.id-b.id).slice(-7,-1)
+      .map(m=>({role:m.role,content:(m.content||'').slice(0,1500)}));
+    const messages=[
+      {role:'system',content:SYSTEM+($('#mode').value==='check'?CHECKER:'')+'\n\nCONTEXT:\n'+(ctx||'(nothing saved matches this question)')},
+      ...hist,{role:'user',content:text}
+    ];
+
+    const bubble = await renderMsg({role:'assistant',content:''});
+    setStatus('Thinking…');
+    let out='';
+    const stream = await engine.chat.completions.create({messages,stream:true,temperature:0.4,max_tokens:600});
+    for await(const ch of stream){
+      out += ch.choices[0]?.delta?.content||'';
+      bubble.innerHTML = md(out)||'…';
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+    const am={chatId,role:'assistant',content:out,t:Date.now()};
+    await put('messages',am);
+    await addChunks(chatId,`User: ${text}\nAssistant: ${out}`,'past chat','chat');
+    setStatus('Done.');
+  }catch(e){
+    console.error(e);
+    setStatus('Error: '+e.message);
+    const d=document.createElement('div'); d.className='m a'; d.textContent='⚠ '+e.message; msgsEl.appendChild(d);
+  }finally{
+    busy=false; $('#go').textContent='Send'; listChats(); updateStorage();
+  }
+}
+
+/* ---------- history, files panel, backup ---------- */
+async function renderHistory(){
+  const q=$('#hq').value.trim().toLowerCase();
+  const [chats,msgs]=await Promise.all([getAll('chats'),getAll('messages')]);
+  const title=new Map(chats.map(c=>[c.id,c.title]));
+  let list=msgs.filter(m=>m.content);
+  if(q){ const ws=q.split(/\s+/); list=list.filter(m=>ws.every(w=>m.content.toLowerCase().includes(w))); }
+  list.sort((a,b)=>b.t-a.t); list=list.slice(0,50);
+  const box=$('#hres'); box.innerHTML='';
+  if(!list.length){ box.textContent=q?'No matches.':'No history yet.'; return; }
+  for(const m of list){
+    const d=document.createElement('div'); d.className='hit';
+    const i=q?Math.max(0,m.content.toLowerCase().indexOf(q.split(/\s+/)[0])-30):0;
+    d.innerHTML=`<b>${esc(title.get(m.chatId)||'Chat')}</b> · ${m.role==='user'?'You':'AI'} · ${new Date(m.t).toLocaleString()}<br>${esc(m.content.slice(i,i+160))}`;
+    d.onclick=()=>{ $('#hist').close(); openChat(m.chatId); };
+    box.appendChild(d);
+  }
+}
+async function renderFiles(){
+  const [chats,files]=await Promise.all([getAll('chats'),getAll('files')]);
+  const title=new Map(chats.map(c=>[c.id,c.title]));
+  const box=$('#hfiles'); box.innerHTML='';
+  if(!files.length){ box.textContent='No files remembered yet.'; return; }
+  for(const f of files.sort((a,b)=>b.t-a.t)){
+    const d=document.createElement('div'); d.className='hit'; d.style.cursor='default';
+    d.innerHTML=`📎 <b>${esc(f.name)}</b> · ${(f.blob.size/1024).toFixed(0)} KB · in "${esc(title.get(f.chatId)||'?')}" <button>Delete</button>`;
+    d.querySelector('button').onclick=async()=>{
+      if(!confirm('Forget this file? Its remembered text is removed too.')) return;
+      const chunks=await byChat('chunks',f.chatId);
+      const t=db.transaction(['files','chunks'],'readwrite');
+      t.objectStore('files').delete(f.id);
+      chunks.filter(c=>c.kind==='file'&&c.source===f.name).forEach(c=>t.objectStore('chunks').delete(c.id));
+      await done(t); await renderFiles(); updateStorage();
+      if(chatId===f.chatId) openChat(chatId);
+    };
+    box.appendChild(d);
+  }
+}
+async function openHistory(){
+  $('#side').classList.remove('open'); $('#hq').value='';
+  $('#hist').showModal(); await renderHistory(); await renderFiles();
+}
+const b64=blob=>new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.onerror=()=>no(r.error); r.readAsDataURL(blob); });
+async function exportAll(){
+  setStatus('Preparing backup…');
+  const [chats,messages,chunks,files]=await Promise.all(['chats','messages','chunks','files'].map(getAll));
+  const fl=[]; for(const f of files) fl.push({id:f.id,chatId:f.chatId,name:f.name,type:f.type,t:f.t,data:await b64(f.blob)});
+  const data={app:'localmind',version:1,exported:Date.now(),chats,messages,files:fl,
+    chunks:chunks.map(c=>({chatId:c.chatId,source:c.source,kind:c.kind,text:c.text,t:c.t,vec:c.vec?Array.from(c.vec):null}))};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
+  a.download='localmind-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setStatus('Backup saved.');
+}
+async function importAll(file){
+  const data=JSON.parse(await file.text());
+  if(data.app!=='localmind') throw new Error('This is not a LocalMind backup file.');
+  const have=new Set((await getAll('chats')).map(c=>c.id));
+  const fresh=data.chats.filter(c=>!have.has(c.id));
+  const ids=new Set(fresh.map(c=>c.id));
+  const fmap=new Map();
+  for(const c of fresh) await put('chats',c);
+  for(const f of data.files){
+    if(!ids.has(f.chatId)) continue;
+    const blob=await (await fetch(f.data)).blob();
+    fmap.set(f.id,await put('files',{chatId:f.chatId,name:f.name,type:f.type,blob,t:f.t}));
+  }
+  for(const m of data.messages){
+    if(!ids.has(m.chatId)) continue;
+    const {id,...rest}=m; rest.fileIds=(m.fileIds||[]).map(x=>fmap.get(x)).filter(Boolean);
+    await put('messages',rest);
+  }
+  for(const c of data.chunks){
+    if(!ids.has(c.chatId)) continue;
+    await put('chunks',{...c,vec:c.vec?Float32Array.from(c.vec):null});
+  }
+  return fresh.length;
+}
+
+/* ---------- install as app ---------- */
+let installEvt=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; $('#install').hidden=false; });
+window.addEventListener('appinstalled',()=>{ $('#install').hidden=true; });
+$('#install').onclick=async()=>{ if(!installEvt) return; installEvt.prompt(); try{ await installEvt.userChoice; }catch{} installEvt=null; $('#install').hidden=true; };
+
+/* ---------- init ---------- */
+async function init(){
+  db = await openDB();
+  const sel=$('#model');
+  MODELS.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.label; sel.appendChild(o); });
+  sel.value = localStorage.getItem('lm_model') || MODELS[1].id;
+  sel.onchange = () => localStorage.setItem('lm_model',sel.value);
+  $('#go').onclick = () => { if(busy){ engine?.interruptGenerate(); } else send(); };
+  $('#in').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey&&!/Mobi|Android|iPhone/i.test(navigator.userAgent)){ e.preventDefault(); send(); } });
+  $('#in').addEventListener('input',e=>{ e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,140)+'px'; });
+  $('#att').onclick = () => $('#file').click();
+  $('#file').onchange = e => { pending.push(...e.target.files); e.target.value=''; renderPending(); };
+  $('#new').onclick = newChat;
+  $('#histBtn').onclick = openHistory;
+  $('#hclose').onclick = () => $('#hist').close();
+  $('#hq').oninput = renderHistory;
+  $('#exp').onclick = () => exportAll().catch(e=>setStatus('Backup failed: '+e.message));
+  $('#imp').onclick = () => $('#impfile').click();
+  $('#impfile').onchange = async e => {
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    try{
+      setStatus('Importing backup…');
+      const n=await importAll(f);
+      setStatus(`Imported ${n} chat(s).`);
+      await listChats(); await renderHistory(); await renderFiles(); updateStorage();
+    }catch(err){ setStatus('Import failed: '+err.message); alert('Import failed: '+err.message); }
+  };
+  $('#menu').onclick = () => $('#side').classList.toggle('open');
+  $('#getmodel').onclick = async () => { try{ await loadModel(); }catch(e){ setStatus('Error: '+e.message); } };
+  window.addEventListener('online',()=>setStatus('Online'));
+  window.addEventListener('offline',()=>setStatus('Offline: everything still works'));
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  try{ navigator.storage?.persist?.(); }catch{}
+  showEmpty(); listChats(); updateStorage();
+  if(!navigator.gpu) setStatus('Warning: no WebGPU in this browser, so the model cannot run here.');
+}
+init();
+</script>
+</body>
+</html>
